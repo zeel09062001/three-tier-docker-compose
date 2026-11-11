@@ -1,62 +1,94 @@
 # =============================================================================
-# Three-tier Notes app.
+# Three-tier Notes app: FRONTEND (Nginx) -> BACKEND (Python) -> DATABASE (MySQL)
+# Hardened: restart policies, resource limits, log rotation, non-root Nginx,
 # =============================================================================
 
-services:
+# Shared log settings: written ONCE here, reused by every service below.
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"   
+    max-file: "3"    
 
+services:
   frontend:
     build: ./frontend
+    restart: unless-stopped
     ports:
-      # The ONLY public entrance. Locally, 127.0.0.1 = this Mac only.
-      # On the EC2 server, set PUBLIC_BIND_ADDRESS=0.0.0.0 in .env.
-      - "${PUBLIC_BIND_ADDRESS:-127.0.0.1}:80:80"
+      # Visitors use port 80 on the host; unprivileged Nginx listens on 8080
+      - "${PUBLIC_BIND_ADDRESS:-127.0.0.1}:80:8080"
+    volumes:
+      - ./frontend/htpasswd:/etc/nginx/htpasswd:ro
     depends_on:
       backend:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/nginx-health"]
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/nginx-health"]
       interval: 10s
       timeout: 3s
       retries: 3
       start_period: 5s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 64M
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    logging: *default-logging
 
   backend:
     build: ./backend
+    restart: unless-stopped
     environment:
-      # Reach the database by its SERVICE NAME, not 127.0.0.1
       DB_HOST: db
       DB_PORT: "3306"
-      # Filled in from .env by Compose. The backend gets ONLY the app
-      # account's details: never the root password.
       DB_NAME: ${MYSQL_DATABASE}
       DB_USER: ${MYSQL_USER}
       DB_PASSWORD: ${MYSQL_PASSWORD}
     depends_on:
       db:
-        condition: service_healthy   
+        condition: service_healthy
     healthcheck:
-      # Healthy only if /api/health returns 200 (backend up AND database reachable)
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/api/health', timeout=3)"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    logging: *default-logging
 
   db:
     image: mysql:8.4
+    restart: unless-stopped
     env_file: .env
-    volumes:  
+    volumes:
       - db-data:/var/lib/mysql
-      # The init script, placed where the MySQL image looks for it (read-only)
       - ./db/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
     healthcheck:
-      # Healthy only once MySQL accepts connections over the network (TCP)
       test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
       interval: 5s
       timeout: 3s
       retries: 20
       start_period: 30s
-    # NOTE: no "ports:" section. The database is deliberately NOT reachable
-    # from outside Docker. Only other containers on this network can reach it.
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 768M
+    # No cap_drop here: MySQL needs a few capabilities to start up
+    # (it starts as root, prepares its files, then switches to the mysql user).
+    logging: *default-logging
+
 volumes:
   db-data:

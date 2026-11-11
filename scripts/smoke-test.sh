@@ -3,8 +3,11 @@
 # Smoke test: proves Frontend -> Backend -> Database works end to end.
 #
 # Usage:
-#   ./scripts/smoke-test.sh                      
-#   ./scripts/smoke-test.sh http://<server-ip>   
+#   ./scripts/smoke-test.sh                      # test this computer
+#   ./scripts/smoke-test.sh http://<server-ip>   # test the EC2 server
+#
+# If basic authentication is on, set the credentials first (never in the script):
+#   export SMOKE_AUTH="admin:<password>"
 #
 # Exits with code 0 if every check passes, 1 if any check fails.
 # =============================================================================
@@ -17,29 +20,48 @@ FAILED=0
 pass() { echo "  ✅ PASS  $1"; PASSED=$((PASSED + 1)); }
 fail() { echo "  ❌ FAIL  $1"; FAILED=$((FAILED + 1)); }
 
-# Returns just the HTTP status code of a request (000 = no answer at all)
-status_of() { curl -s -o /dev/null -w '%{http_code}' --max-time 5 "$@" || echo "000"; }
+# curl, with the credentials added when SMOKE_AUTH is set
+request() {
+  if [ -n "${SMOKE_AUTH:-}" ]; then
+    curl -u "$SMOKE_AUTH" "$@"
+  else
+    curl "$@"
+  fi
+}
+
+# Just the HTTP status code of a request (000 = no answer at all)
+status_of() { request -s -o /dev/null -w '%{http_code}' --max-time 5 "$@" || echo "000"; }
 
 echo "Smoke testing $BASE_URL"
 echo
 
+# --- 0. Authentication: a request WITHOUT credentials must be refused ---------
+if [ -n "${SMOKE_AUTH:-}" ]; then
+  unauth=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "$BASE_URL/" || echo "000")
+  if [ "$unauth" = "401" ]; then
+    pass "Requests without a password are refused (401)"
+  else
+    fail "Requests without a password are refused (got $unauth)"
+  fi
+fi
+
 # --- 1. Frontend: does Nginx serve the web page? ------------------------------
-page=$(curl -s --max-time 5 "$BASE_URL/" || true)
+page=$(request -s --max-time 5 "$BASE_URL/" || true)
 if echo "$page" | grep -q "<title>Notes</title>"; then
   pass "Frontend serves the Notes web page"
 else
   fail "Frontend serves the Notes web page"
 fi
 
-# --- 2. Frontend: Nginx's own health check ------------------------------------
-if [ "$(status_of "$BASE_URL/nginx-health")" = "200" ]; then
+# --- 2. Frontend: Nginx's own health check (no password needed) ---------------
+if [ "$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "$BASE_URL/nginx-health" || echo 000)" = "200" ]; then
   pass "Nginx health check returns 200"
 else
   fail "Nginx health check returns 200"
 fi
 
 # --- 3. Frontend -> Backend -> Database: the health check through the proxy ---
-health=$(curl -s --max-time 5 "$BASE_URL/api/health" || true)
+health=$(request -s --max-time 5 "$BASE_URL/api/health" || true)
 if echo "$health" | grep -q '"database":"reachable"'; then
   pass "API health through Nginx: database reachable"
 else
@@ -47,7 +69,7 @@ else
 fi
 
 # --- 4. Create a note (a real write to the database) --------------------------
-response=$(curl -s --max-time 5 -w '\n%{http_code}' -X POST "$BASE_URL/api/notes" \
+response=$(request -s --max-time 5 -w '\n%{http_code}' -X POST "$BASE_URL/api/notes" \
   -H "Content-Type: application/json" \
   -d '{"title": "Smoke test", "content": "Created by smoke-test.sh"}' || true)
 code=$(echo "$response" | tail -n 1)
@@ -61,7 +83,7 @@ else
 fi
 
 # --- 5. The new note appears in the list (a real read from the database) ------
-if [ -n "$note_id" ] && curl -s --max-time 5 "$BASE_URL/api/notes" \
+if [ -n "$note_id" ] && request -s --max-time 5 "$BASE_URL/api/notes" \
     | python3 -c "import json,sys; ids=[n['id'] for n in json.load(sys.stdin)]; sys.exit(0 if $note_id in ids else 1)" 2>/dev/null; then
   pass "The new note appears in the list"
 else
@@ -91,7 +113,7 @@ else
 fi
 
 # --- 8. Security headers are present ------------------------------------------
-headers=$(curl -sI --max-time 5 "$BASE_URL/" || true)
+headers=$(request -sI --max-time 5 "$BASE_URL/" || true)
 if echo "$headers" | grep -qi "content-security-policy" \
    && echo "$headers" | grep -qi "x-frame-options"; then
   pass "Security headers present"

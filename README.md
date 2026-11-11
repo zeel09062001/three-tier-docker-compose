@@ -56,4 +56,7 @@ CONTAINER ID   NAME                                   CPU %     MEM USAGE / LIMI
 zeelshekhaliya@Mac three-tier-docker-compose % 
 
 
+$apr1$844zr0To$/p8dsetGwZwcobbONJpi40
+frontend/htpasswd
+
 
