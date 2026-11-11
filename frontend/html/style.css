@@ -1,0 +1,125 @@
+* {
+    box-sizing: border-box;
+}
+
+[hidden] {
+    display: none !important;
+}
+
+body {
+    margin: 0;
+    font-family: system-ui, -apple-system, sans-serif;
+    background: #f5f6f8;
+    color: #1f2328;
+    line-height: 1.5;
+}
+
+main {
+    max-width: 680px;
+    margin: 40px auto;
+    padding: 0 16px;
+}
+
+h1 {
+    margin-bottom: 0;
+}
+
+h2 {
+    font-size: 18px;
+    margin-top: 0;
+}
+
+.subtitle,
+.muted {
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+}
+
+label {
+    display: block;
+    margin-bottom: 12px;
+    font-size: 14px;
+    color: #4b5563;
+}
+
+input,
+textarea {
+    display: block;
+    width: 100%;
+    margin-top: 4px;
+    padding: 9px 10px;
+    font: inherit;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+}
+
+button {
+    font: inherit;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 8px;
+    background: #2f5bd3;
+    color: #fff;
+    cursor: pointer;
+}
+
+button:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
+
+button.danger {
+    background: transparent;
+    color: #b42318;
+    padding: 4px 0;
+    margin-left: 12px;
+}
+
+.message {
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+.message.error {
+    background: #fdecea;
+    color: #b42318;
+}
+
+.message.success {
+    background: #e7f5ec;
+    color: #1d7a46;
+}
+
+#notes {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.note {
+    border-top: 1px solid #e5e7eb;
+    padding: 12px 0;
+}
+
+.note:first-child {
+    border-top: none;
+}
+
+.note h3 {
+    margin: 0 0 4px;
+    font-size: 16px;
+}
+
+.note p {
+    margin: 0 0 4px;
+    white-space: pre-wrap;
+}

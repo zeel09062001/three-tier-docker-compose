@@ -13,3 +13,5 @@ LEAST PRIVILEGE
 # 6. Create an ordinary user, and stop running as root
 RUN useradd --create-home --uid 10001 appuser
 USER appuser
+
+On EC2, you’ll set PUBLIC_BIND_ADDRESS=0.0.0.0 in the server’s .env, so it’s reachable from the internet (through the security group).

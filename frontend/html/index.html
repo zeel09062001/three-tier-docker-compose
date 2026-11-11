@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Notes</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <main>
+        <h1>Notes</h1>
+        <p class="subtitle">Nginx → Python API → MySQL, all in Docker</p>
+
+        <p id="message" class="message" role="status" hidden></p>
+
+        <form id="note-form" class="card">
+            <h2>Add a note</h2>
+            <label>Title
+                <input name="title" maxlength="200" required>
+            </label>
+            <label>Content
+                <textarea name="content" rows="3" maxlength="5000" required></textarea>
+            </label>
+            <button type="submit">Add note</button>
+        </form>
+
+        <section class="card">
+            <h2>Your notes</h2>
+            <p id="empty" class="muted" hidden>No notes yet. Add your first one above.</p>
+            <ul id="notes"></ul>
+        </section>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+
+</html>

@@ -3,6 +3,23 @@
 # =============================================================================
 
 services:
+
+  frontend:
+    build: ./frontend
+    ports:
+      # The ONLY public entrance. Locally, 127.0.0.1 = this Mac only.
+      # On the EC2 server, set PUBLIC_BIND_ADDRESS=0.0.0.0 in .env.
+      - "${PUBLIC_BIND_ADDRESS:-127.0.0.1}:80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/nginx-health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
   backend:
     build: ./backend
     environment:
@@ -24,10 +41,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
-    ports:
-      # TEMPORARY, for testing from the Mac in this step. Removed in Step 5,
-      # once Nginx is in front. 127.0.0.1 = reachable from THIS Mac only.
-      - "127.0.0.1:5000:5000"
 
   db:
     image: mysql:8.4
