@@ -3,6 +3,32 @@
 # =============================================================================
 
 services:
+  backend:
+    build: ./backend
+    environment:
+      # Reach the database by its SERVICE NAME, not 127.0.0.1
+      DB_HOST: db
+      DB_PORT: "3306"
+      # Filled in from .env by Compose. The backend gets ONLY the app
+      # account's details: never the root password.
+      DB_NAME: ${MYSQL_DATABASE}
+      DB_USER: ${MYSQL_USER}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+    depends_on:
+      db:
+        condition: service_healthy   
+    healthcheck:
+      # Healthy only if /api/health returns 200 (backend up AND database reachable)
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/api/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    ports:
+      # TEMPORARY, for testing from the Mac in this step. Removed in Step 5,
+      # once Nginx is in front. 127.0.0.1 = reachable from THIS Mac only.
+      - "127.0.0.1:5000:5000"
+
   db:
     image: mysql:8.4
     env_file: .env
