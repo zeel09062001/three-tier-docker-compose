@@ -1,0 +1,23 @@
+# =============================================================================
+# Three-tier Notes app.
+# =============================================================================
+
+services:
+  db:
+    image: mysql:8.4
+    env_file: .env
+    volumes:  
+      - db-data:/var/lib/mysql
+      # The init script, placed where the MySQL image looks for it (read-only)
+      - ./db/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      # Healthy only once MySQL accepts connections over the network (TCP)
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 30s
+    # NOTE: no "ports:" section. The database is deliberately NOT reachable
+    # from outside Docker. Only other containers on this network can reach it.
+volumes:
+  db-data:
