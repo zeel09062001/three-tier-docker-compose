@@ -140,3 +140,9 @@ def not_found(_error):
 def unexpected_error(_error):
     log.exception("Unhandled error")
     return jsonify(error="Internal server error"), 500
+
+@app.errorhandler(pymysql.MySQLError)
+def database_error(_error):
+    """Any database problem in any route: 503, so clients know to retry later."""
+    log.exception("Database error")
+    return jsonify(error="Database unavailable"), 503
