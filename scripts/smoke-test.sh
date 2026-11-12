@@ -121,6 +121,17 @@ else
   fail "Security headers present"
 fi
 
+# If the site needs a password and none was given, say so clearly, and stop
+if [ -z "${SMOKE_AUTH:-}" ]; then
+  first=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "$BASE_URL/" || echo "000")
+  if [ "$first" = "401" ]; then
+    echo "This site requires a password, but SMOKE_AUTH is not set."
+    echo "Set it first (the password won't be shown):"
+    echo '  echo -n "Password: "; read -s P; echo; export SMOKE_AUTH="admin:$P"'
+    exit 2
+  fi
+fi
+
 # --- Summary ------------------------------------------------------------------
 echo
 echo "Result: $PASSED passed, $FAILED failed"
