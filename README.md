@@ -144,7 +144,7 @@ All database errors return **503**, so clients know to retry; unexpected errors 
 **Prerequisites:** Docker Desktop (Compose v2).
 
 ```bash
-git clone <this repository> && cd three-tier-docker-compose
+git clone https://github.com/zeel09062001/three-tier-docker-compose.git && cd three-tier-docker-compose
 
 # 1. Settings: copy the template and set strong passwords
 cp .env.example .env            # then edit the two "change-me" passwords
